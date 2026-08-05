@@ -69,7 +69,7 @@ export default function LoginPage() {
                 autoComplete="off"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ingresá tu usuario"
+                placeholder=" "
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder=" "
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
