@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Leaf, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,16 +17,14 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
+    // Validación manual directa: bioculture / 123456
+    if (email.trim().toLowerCase() === "bioculture" && password === "123456") {
+      router.push("/dashboard");
+      router.refresh();
+    } else {
       setError("Usuario o contraseña incorrectos.");
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -39,8 +35,8 @@ export default function LoginPage() {
             <Leaf className="h-5 w-5 text-ok-text" strokeWidth={1.75} />
           </div>
           <div className="text-center">
-            <h1 className="text-[15px] font-medium text-zinc-100">Yuyos Stock</h1>
-            <p className="mt-0.5 text-[13px] text-zinc-500">Control de inventario privado</p>
+            <h1 className="text-[15px] font-medium text-zinc-100">B I O C U L T U R E</h1>
+            <p className="mt-0.5 text-[13px] text-zinc-500">Control de inventario</p>
           </div>
         </div>
 
@@ -54,12 +50,12 @@ export default function LoginPage() {
                 Usuario
               </label>
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="username"
+                autoComplete="off"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@negocio.com"
+                placeholder=" "
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
@@ -74,7 +70,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder=" "
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
@@ -97,7 +93,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-[12px] text-zinc-600">
-          Acceso restringido al personal autorizado
+          B  I  O  C  U  L  T  U  R  E
         </p>
       </div>
     </main>
