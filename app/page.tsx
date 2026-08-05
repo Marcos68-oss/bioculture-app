@@ -9,7 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +19,14 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
+    // Si escribe "bioculture", por detrás lo mandamos como "bioculture@bioculture.com" a Supabase
+    const cleanUsername = username.trim().toLowerCase();
+    const formattedEmail = cleanUsername.includes("@") 
+      ? cleanUsername 
+      : `${cleanUsername}@bioculture.com`;
+
     const { error } = await supabase.auth.signInWithPassword({ 
-      email, 
+      email: formattedEmail, 
       password 
     });
 
@@ -55,15 +61,15 @@ export default function LoginPage() {
           <div className="space-y-3.5">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium text-zinc-400">
-                Usuario (Email)
+                Usuario
               </label>
               <input
-                type="email"
+                type="text"
                 required
                 autoComplete="off"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="bioculture@gmail.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ingresá tu usuario"
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
