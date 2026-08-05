@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Leaf, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,14 +19,19 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    // Validación manual directa: bioculture / 123456
-    if (email.trim().toLowerCase() === "bioculture" && password === "123456") {
-      router.push("/dashboard");
-      router.refresh();
-    } else {
+    const { error } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
+    });
+
+    if (error) {
       setError("Usuario o contraseña incorrectos.");
       setLoading(false);
+      return;
     }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -43,19 +50,20 @@ export default function LoginPage() {
         <form
           onSubmit={handleSubmit}
           className="rounded-md border border-zinc-800 bg-zinc-900/60 p-5"
+          autoComplete="off"
         >
           <div className="space-y-3.5">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium text-zinc-400">
-                Usuario
+                Usuario (Email)
               </label>
               <input
-                type="text"
+                type="email"
                 required
                 autoComplete="off"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder=" "
+                placeholder="bioculture@gmail.com"
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
@@ -67,10 +75,10 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder=" "
+                placeholder="••••••••"
                 className="h-10 w-full rounded border border-zinc-800 bg-zinc-950 px-3 text-[14px] text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-zinc-600"
               />
             </div>
