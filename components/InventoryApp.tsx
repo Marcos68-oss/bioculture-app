@@ -102,7 +102,7 @@ export default function InventoryApp({
             </div>
             <div>
               <h1 className="text-[13.5px] font-medium leading-none text-zinc-100">
-                Yerbas &amp; Yuyos
+                BIOCULTURE
               </h1>
               <div className="mt-1 flex items-center gap-1 text-[11px] text-zinc-500">
                 <Wifi className="h-2.5 w-2.5 text-ok-text" strokeWidth={2.5} />
@@ -164,7 +164,7 @@ export default function InventoryApp({
         {productosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center gap-1 py-16 text-center">
             <p className="text-[13px] text-zinc-500">Sin resultados</p>
-            <p className="text-[12px] text-zinc-600">Probá con otro código o nombre</p>
+            <p className="text-[12px] text-zinc-600">Prueba con otro código o nombre</p>
           </div>
         ) : (
           productosFiltrados.map((p) => (
