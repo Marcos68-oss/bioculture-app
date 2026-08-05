@@ -6,13 +6,13 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Yuyos — Control de Stock",
-  description: "Sistema privado de control de inventario para remedios naturales",
+  title: "BIOCULTURE",
+  description: "Sistema de control de inventario",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Yuyos Stock",
+    title: "BIOCULTURE",
   },
   icons: {
     icon: "/icons/icon-192.png",
