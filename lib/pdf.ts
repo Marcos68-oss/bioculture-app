@@ -33,6 +33,13 @@ function pie(doc: jsPDF) {
   }
 }
 
+/** Limpia cualquier carácter especial no soportado por helvetica */
+function formatoLimpioGs(monto: number): string {
+  // Reemplazamos si formatGs usa el símbolo ₲ por "Gs. " que helvetica soporta 100%
+  const formateado = formatGs(monto);
+  return formateado.replace(/₲/g, "Gs. ");
+}
+
 /** Nota de venta individual (tipo comprobante para un cliente) */
 export function generarNotaVenta(venta: Venta) {
   const doc = new jsPDF();
@@ -56,18 +63,18 @@ export function generarNotaVenta(venta: Venta) {
       item.producto_codigo,
       item.producto_nombre,
       String(item.cantidad),
-      formatGs(item.precio_unitario),
-      formatGs(item.subtotal),
+      formatoLimpioGs(item.precio_unitario),
+      formatoLimpioGs(item.subtotal),
     ]),
     theme: "grid",
-    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9, halign: "left" },
-    bodyStyles: { fontSize: 9 },
+    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 8, halign: "left" },
+    bodyStyles: { fontSize: 8, cellPadding: 2 },
     columnStyles: {
-      0: { cellWidth: 30 }, // Ancho fijo para código
-      1: { cellWidth: "auto" }, // El producto toma el espacio libre restante
-      2: { cellWidth: 20, halign: "center" }, // Cantidad centrada
-      3: { cellWidth: 35, halign: "right" },
-      4: { cellWidth: 35, halign: "right" },
+      0: { cellWidth: 25 },
+      1: { cellWidth: "auto" }, // Producto ocupa todo el espacio libre
+      2: { cellWidth: 18, halign: "center" },
+      3: { cellWidth: 38, halign: "right" },
+      4: { cellWidth: 40, halign: "right" },
     },
   });
 
@@ -76,9 +83,8 @@ export function generarNotaVenta(venta: Venta) {
   const pageWidth = doc.internal.pageSize.getWidth();
   
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  // Alineado a 14mm del borde derecho exacto
-  doc.text(`Total: ${formatGs(venta.total)}`, pageWidth - 14, finalY + 10, { align: "right" });
+  doc.setFontSize(10);
+  doc.text(`Total: ${formatoLimpioGs(venta.total)}`, pageWidth - 14, finalY + 10, { align: "right" });
 
   pie(doc);
   doc.save(`nota-venta-${venta.id.slice(0, 8)}.pdf`);
@@ -118,16 +124,16 @@ export function generarReportePeriodo(
       new Date(v.fecha).toLocaleDateString("es-PY"),
       v.cliente,
       String(v.venta_items.reduce((s, it) => s + it.cantidad, 0)),
-      formatGs(v.total),
+      formatoLimpioGs(v.total),
     ]),
     theme: "grid",
-    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9 },
-    bodyStyles: { fontSize: 9 },
+    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 8 },
+    bodyStyles: { fontSize: 8, cellPadding: 2 },
     columnStyles: { 
-      0: { cellWidth: 35 },
+      0: { cellWidth: 30 },
       1: { cellWidth: "auto" },
-      2: { cellWidth: 25, halign: "center" }, 
-      3: { cellWidth: 40, halign: "right" } 
+      2: { cellWidth: 20, halign: "center" }, 
+      3: { cellWidth: 45, halign: "right" } 
     },
   });
 
@@ -151,7 +157,7 @@ export function generarReportePeriodo(
   // @ts-expect-error — lastAutoTable lo agrega el plugin en runtime
   const y1 = doc.lastAutoTable.finalY as number;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.text("Totales por producto", 14, y1 + 12);
 
   autoTable(doc, {
@@ -162,16 +168,16 @@ export function generarReportePeriodo(
       codigo,
       d.nombre,
       String(d.cantidad),
-      formatGs(d.total),
+      formatoLimpioGs(d.total),
     ]),
     theme: "grid",
-    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9 },
-    bodyStyles: { fontSize: 9 },
+    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 8 },
+    bodyStyles: { fontSize: 8, cellPadding: 2 },
     columnStyles: { 
-      0: { cellWidth: 30 },
+      0: { cellWidth: 25 },
       1: { cellWidth: "auto" },
-      2: { cellWidth: 30, halign: "center" }, 
-      3: { cellWidth: 40, halign: "right" } 
+      2: { cellWidth: 25, halign: "center" }, 
+      3: { cellWidth: 45, halign: "right" } 
     },
   });
 
@@ -180,8 +186,8 @@ export function generarReportePeriodo(
   const pageWidth = doc.internal.pageSize.getWidth();
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(`Total del período: ${formatGs(totalGeneral)}`, pageWidth - 14, y2 + 10, { align: "right" });
+  doc.setFontSize(11);
+  doc.text(`Total del período: ${formatoLimpioGs(totalGeneral)}`, pageWidth - 14, y2 + 10, { align: "right" });
 
   pie(doc);
   doc.save(`reporte-ventas-${desde.toISOString().slice(0, 10)}-a-${hasta.toISOString().slice(0, 10)}.pdf`);
