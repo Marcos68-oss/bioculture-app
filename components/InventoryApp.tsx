@@ -2,18 +2,22 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, LogOut, Wifi } from "lucide-react";
+import { Plus, Search, LogOut, Wifi, ShoppingCart, History } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto, getEstadoStock } from "@/lib/types";
 import ProductRow from "@/components/ProductRow";
 import ProductDrawer from "@/components/ProductDrawer";
+import VentaDrawer from "@/components/VentaDrawer";
+import VentasHistorial from "@/components/VentasHistorial";
 
 export default function InventoryApp({
   initialProductos,
   userEmail,
+  ventasHabilitado = false,
 }: {
   initialProductos: Producto[];
   userEmail: string;
+  ventasHabilitado?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -24,6 +28,8 @@ export default function InventoryApp({
   const [soloAlerta, setSoloAlerta] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
+  const [ventaDrawerOpen, setVentaDrawerOpen] = useState(false);
+  const [historialOpen, setHistorialOpen] = useState(false);
 
   const totalCount = productos.length;
   const alertaCount = useMemo(
@@ -62,6 +68,44 @@ export default function InventoryApp({
         prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: producto.stock_actual } : p))
       );
     }
+  }
+
+  // Registrar una venta: descuenta stock + guarda el registro en `ventas`
+  async function registrarVenta(
+    producto: Producto,
+    cantidad: number,
+    cliente: string
+  ): Promise<boolean> {
+    const nuevoStock = Math.max(0, producto.stock_actual - cantidad);
+
+    // Optimistic update del stock
+    setProductos((prev) =>
+      prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: nuevoStock } : p))
+    );
+
+    const { error: errorStock } = await supabase
+      .from("productos")
+      .update({ stock_actual: nuevoStock })
+      .eq("id", producto.id);
+
+    if (errorStock) {
+      setProductos((prev) =>
+        prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: producto.stock_actual } : p))
+      );
+      return false;
+    }
+
+    const { error: errorVenta } = await supabase.from("ventas").insert({
+      producto_id: producto.id,
+      producto_codigo: producto.codigo,
+      producto_nombre: producto.nombre,
+      cantidad,
+      cliente,
+    });
+
+    // Si falla el registro de la venta, igual dejamos el stock ya
+    // descontado (la venta física ya pasó) pero avisamos del error.
+    return !errorVenta;
   }
 
   function abrirNuevo() {
@@ -111,14 +155,26 @@ export default function InventoryApp({
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
-            aria-label="Cerrar sesión"
-            title={userEmail}
-          >
-            <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {ventasHabilitado && (
+              <button
+                onClick={() => setHistorialOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+                aria-label="Historial de ventas"
+                title="Historial de ventas"
+              >
+                <History className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+              aria-label="Cerrar sesión"
+              title={userEmail}
+            >
+              <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          </div>
         </div>
 
         {/* Búsqueda */}
@@ -178,14 +234,26 @@ export default function InventoryApp({
         )}
       </div>
 
-      {/* Botón flotante agregar */}
-      <button
-        onClick={abrirNuevo}
-        className="safe-bottom fixed bottom-5 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-zinc-100 text-zinc-950 shadow-subtle transition-transform active:scale-95"
-        aria-label="Agregar producto"
-      >
-        <Plus className="h-5 w-5" strokeWidth={2.25} />
-      </button>
+      {/* Botones flotantes */}
+      <div className="safe-bottom fixed bottom-5 right-4 z-20 flex flex-col items-end gap-2.5">
+        {ventasHabilitado && (
+          <button
+            onClick={() => setVentaDrawerOpen(true)}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-ok-DEFAULT text-zinc-950 shadow-subtle transition-transform active:scale-95"
+            aria-label="Registrar venta"
+            title="Registrar venta"
+          >
+            <ShoppingCart className="h-5 w-5" strokeWidth={2.25} />
+          </button>
+        )}
+        <button
+          onClick={abrirNuevo}
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-zinc-100 text-zinc-950 shadow-subtle transition-transform active:scale-95"
+          aria-label="Agregar producto"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.25} />
+        </button>
+      </div>
 
       <ProductDrawer
         open={drawerOpen}
@@ -193,6 +261,18 @@ export default function InventoryApp({
         onClose={() => setDrawerOpen(false)}
         onGuardado={onGuardado}
       />
+
+      {ventasHabilitado && (
+        <>
+          <VentaDrawer
+            open={ventaDrawerOpen}
+            productos={productos}
+            onClose={() => setVentaDrawerOpen(false)}
+            onConfirmar={registrarVenta}
+          />
+          <VentasHistorial open={historialOpen} onClose={() => setHistorialOpen(false)} />
+        </>
+      )}
     </main>
   );
 }
