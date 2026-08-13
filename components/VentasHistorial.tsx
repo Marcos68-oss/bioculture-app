@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X, Loader2, Trash2, History, FileDown, ChevronDown } from "lucide-react";
+import { X, Loader2, Trash2, History, FileDown, ChevronDown, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Venta, formatGs } from "@/lib/types";
 import { generarNotaVenta, generarReportePeriodo } from "@/lib/pdf";
 
-type Periodo = "7d" | "30d" | "90d" | "mes_actual";
+type Periodo = "hoy" | "7d" | "30d" | "90d" | "mes_actual" | "personalizado";
 
 const PERIODOS: { value: Periodo; label: string; dias?: number }[] = [
+  { value: "hoy", label: "Hoy" },
   { value: "7d", label: "Últimos 7 días", dias: 7 },
   { value: "30d", label: "Últimos 30 días", dias: 30 },
   { value: "90d", label: "Últimos 3 meses", dias: 90 },
   { value: "mes_actual", label: "Este mes" },
+  { value: "personalizado", label: "Elegir día" },
 ];
 
 function formatFecha(iso: string) {
@@ -24,16 +26,31 @@ function formatFecha(iso: string) {
   );
 }
 
-function rangoDe(periodo: Periodo): { desde: Date; hasta: Date } {
-  const hasta = new Date();
-  if (periodo === "mes_actual") {
-    const desde = new Date(hasta.getFullYear(), hasta.getMonth(), 1);
+function rangoDe(periodo: Periodo, fechaDia?: string): { desde: Date; hasta: Date } {
+  const ahora = new Date();
+
+  if (periodo === "hoy") {
+    const desde = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0, 0);
+    const hasta = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59, 999);
     return { desde, hasta };
   }
+
+  if (periodo === "personalizado" && fechaDia) {
+    const [y, m, d] = fechaDia.split("-").map(Number);
+    const desde = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const hasta = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return { desde, hasta };
+  }
+
+  if (periodo === "mes_actual") {
+    const desde = new Date(ahora.getFullYear(), ahora.getMonth(), 1, 0, 0, 0, 0);
+    return { desde, hasta: ahora };
+  }
+
   const dias = PERIODOS.find((p) => p.value === periodo)?.dias ?? 30;
   const desde = new Date();
   desde.setDate(desde.getDate() - dias);
-  return { desde, hasta };
+  return { desde, hasta: ahora };
 }
 
 export default function VentasHistorial({
@@ -49,6 +66,9 @@ export default function VentasHistorial({
   const [borrandoId, setBorrandoId] = useState<string | null>(null);
   const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState<Periodo>("30d");
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
   const [generandoReporte, setGenerandoReporte] = useState(false);
 
   useEffect(() => {
@@ -72,10 +92,17 @@ export default function VentasHistorial({
     cargar();
   }, [open]);
 
+  const { desde, hasta } = useMemo(
+    () => rangoDe(periodo, fechaSeleccionada),
+    [periodo, fechaSeleccionada]
+  );
+
   const ventasDelPeriodo = useMemo(() => {
-    const { desde } = rangoDe(periodo);
-    return ventas.filter((v) => new Date(v.fecha) >= desde);
-  }, [ventas, periodo]);
+    return ventas.filter((v) => {
+      const f = new Date(v.fecha);
+      return f >= desde && f <= hasta;
+    });
+  }, [ventas, desde, hasta]);
 
   const totalPeriodo = useMemo(
     () => ventasDelPeriodo.reduce((s, v) => s + v.total, 0),
@@ -100,8 +127,14 @@ export default function VentasHistorial({
 
   function handleExportarReporte() {
     setGenerandoReporte(true);
-    const { desde, hasta } = rangoDe(periodo);
-    const etiqueta = PERIODOS.find((p) => p.value === periodo)?.label ?? "";
+    let etiqueta = PERIODOS.find((p) => p.value === periodo)?.label ?? "";
+
+    if (periodo === "hoy") {
+      etiqueta = `Hoy (${desde.toLocaleDateString("es-PY")})`;
+    } else if (periodo === "personalizado") {
+      etiqueta = `Día ${desde.toLocaleDateString("es-PY")}`;
+    }
+
     generarReportePeriodo(ventasDelPeriodo, desde, hasta, etiqueta);
     setGenerandoReporte(false);
   }
@@ -145,7 +178,20 @@ export default function VentasHistorial({
             ))}
           </div>
 
-          <div className="flex items-center justify-between">
+          {/* Campo de fecha para día específico */}
+          {periodo === "personalizado" && (
+            <div className="flex items-center gap-2 pt-1">
+              <Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+              <input
+                type="date"
+                value={fechaSeleccionada}
+                onChange={(e) => setFechaSeleccionada(e.target.value)}
+                className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-[12px] text-zinc-200 focus:border-zinc-600 focus:outline-none"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
             <p className="text-[11.5px] text-zinc-500">
               {ventasDelPeriodo.length} ventas · Total {formatGs(totalPeriodo)}
             </p>
