@@ -14,3 +14,13 @@ export function getEstadoStock(p: Pick<Producto, "stock_actual" | "stock_minimo"
   if (p.stock_actual <= p.stock_minimo) return "poco";
   return "ok";
 }
+
+export type Venta = {
+  id: string;
+  producto_id: string | null;
+  producto_codigo: string;
+  producto_nombre: string;
+  cantidad: number;
+  cliente: string;
+  fecha: string;
+};
