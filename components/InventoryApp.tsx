@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, LogOut, Wifi, ShoppingCart, History } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Producto, getEstadoStock } from "@/lib/types";
+import { Producto, ItemCarrito, getEstadoStock } from "@/lib/types";
 import ProductRow from "@/components/ProductRow";
 import ProductDrawer from "@/components/ProductDrawer";
 import VentaDrawer from "@/components/VentaDrawer";
@@ -63,49 +63,73 @@ export default function InventoryApp({
       .eq("id", producto.id);
 
     if (error) {
-      // Revertir si falló en el servidor
       setProductos((prev) =>
         prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: producto.stock_actual } : p))
       );
     }
   }
 
-  // Registrar una venta: descuenta stock + guarda el registro en `ventas`
-  async function registrarVenta(
-    producto: Producto,
-    cantidad: number,
-    cliente: string
-  ): Promise<boolean> {
-    const nuevoStock = Math.max(0, producto.stock_actual - cantidad);
+  // Registrar una venta con uno o varios productos (carrito):
+  // 1) descuenta el stock de cada producto
+  // 2) crea la cabecera en `ventas`
+  // 3) crea un `venta_items` por cada producto del carrito
+  async function registrarVenta(items: ItemCarrito[], cliente: string): Promise<boolean> {
+    const total = items.reduce((s, it) => s + it.producto.precio * it.cantidad, 0);
 
-    // Optimistic update del stock
+    // Optimistic update de stock para todos los productos del carrito
+    const stockAnterior = new Map(items.map((it) => [it.producto.id, it.producto.stock_actual]));
     setProductos((prev) =>
-      prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: nuevoStock } : p))
+      prev.map((p) => {
+        const item = items.find((it) => it.producto.id === p.id);
+        if (!item) return p;
+        return { ...p, stock_actual: Math.max(0, p.stock_actual - item.cantidad) };
+      })
     );
 
-    const { error: errorStock } = await supabase
-      .from("productos")
-      .update({ stock_actual: nuevoStock })
-      .eq("id", producto.id);
+    // Descontar stock en Supabase, producto por producto
+    for (const item of items) {
+      const nuevoStock = Math.max(0, item.producto.stock_actual - item.cantidad);
+      const { error } = await supabase
+        .from("productos")
+        .update({ stock_actual: nuevoStock })
+        .eq("id", item.producto.id);
 
-    if (errorStock) {
-      setProductos((prev) =>
-        prev.map((p) => (p.id === producto.id ? { ...p, stock_actual: producto.stock_actual } : p))
-      );
-      return false;
+      if (error) {
+        // Revertimos solo el stock local; puede quedar algún producto
+        // anterior ya descontado en la base si falló a mitad de camino.
+        setProductos((prev) =>
+          prev.map((p) => {
+            const anterior = stockAnterior.get(p.id);
+            return anterior !== undefined ? { ...p, stock_actual: anterior } : p;
+          })
+        );
+        return false;
+      }
     }
 
-    const { error: errorVenta } = await supabase.from("ventas").insert({
-      producto_id: producto.id,
-      producto_codigo: producto.codigo,
-      producto_nombre: producto.nombre,
-      cantidad,
-      cliente,
-    });
+    // Crear la venta (cabecera)
+    const { data: venta, error: errorVenta } = await supabase
+      .from("ventas")
+      .insert({ cliente, total })
+      .select()
+      .single();
 
-    // Si falla el registro de la venta, igual dejamos el stock ya
-    // descontado (la venta física ya pasó) pero avisamos del error.
-    return !errorVenta;
+    if (errorVenta || !venta) return false;
+
+    // Crear los items de esa venta
+    const { error: errorItems } = await supabase.from("venta_items").insert(
+      items.map((it) => ({
+        venta_id: venta.id,
+        producto_id: it.producto.id,
+        producto_codigo: it.producto.codigo,
+        producto_nombre: it.producto.nombre,
+        cantidad: it.cantidad,
+        precio_unitario: it.producto.precio,
+        subtotal: it.producto.precio * it.cantidad,
+      }))
+    );
+
+    return !errorItems;
   }
 
   function abrirNuevo() {
@@ -206,7 +230,7 @@ export default function InventoryApp({
             onClick={() => setSoloAlerta(true)}
             className={`h-7 rounded px-2.5 text-[12px] font-medium transition-colors ${
               soloAlerta
-                ? "bg-danger-DEFAULT text-zinc-50"
+                ? "bg-danger text-zinc-50"
                 : "border border-zinc-800 text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -239,7 +263,7 @@ export default function InventoryApp({
         {ventasHabilitado && (
           <button
             onClick={() => setVentaDrawerOpen(true)}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-ok-DEFAULT text-zinc-950 shadow-subtle transition-transform active:scale-95"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-ok text-zinc-950 shadow-subtle transition-transform active:scale-95"
             aria-label="Registrar venta"
             title="Registrar venta"
           >
