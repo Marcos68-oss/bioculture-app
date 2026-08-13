@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { Producto, getEstadoStock } from "@/lib/types";
+import { Producto, getEstadoStock, formatGs } from "@/lib/types";
 
 const ESTADO_CONFIG = {
   ok: { label: "OK", cls: "bg-ok-bg text-ok-text border-ok-border" },
@@ -40,18 +40,23 @@ export default function ProductRow({
         {producto.codigo}
       </span>
 
-      {/* Nombre + badge */}
+      {/* Nombre + badge + precio */}
       <button
         onClick={onEditar}
         className="min-w-0 flex-1 text-left"
         aria-label={`Editar ${producto.nombre}`}
       >
         <p className="truncate text-[13.5px] font-medium text-zinc-100">{producto.nombre}</p>
-        <span
-          className={`mt-1 inline-flex items-center rounded border px-1.5 py-0.5 text-[10.5px] font-medium leading-none ${config.cls}`}
-        >
-          {config.label}
-        </span>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10.5px] font-medium leading-none ${config.cls}`}
+          >
+            {config.label}
+          </span>
+          {producto.precio > 0 && (
+            <span className="text-[11px] text-zinc-500">{formatGs(producto.precio)}</span>
+          )}
+        </div>
       </button>
 
       {/* Contador */}
