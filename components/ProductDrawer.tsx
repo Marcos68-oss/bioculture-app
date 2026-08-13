@@ -23,6 +23,7 @@ export default function ProductDrawer({
   const [nombre, setNombre] = useState("");
   const [stockActual, setStockActual] = useState("0");
   const [stockMinimo, setStockMinimo] = useState("5");
+  const [precio, setPrecio] = useState("0");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function ProductDrawer({
       setNombre(producto?.nombre ?? "");
       setStockActual(String(producto?.stock_actual ?? 0));
       setStockMinimo(String(producto?.stock_minimo ?? 5));
+      setPrecio(String(producto?.precio ?? 0));
       setError(null);
     }
   }, [open, producto]);
@@ -49,6 +51,7 @@ export default function ProductDrawer({
       nombre: nombre.trim(),
       stock_actual: Number(stockActual) || 0,
       stock_minimo: Number(stockMinimo) || 0,
+      precio: Number(precio) || 0,
     };
 
     if (!payload.codigo || !payload.nombre) {
@@ -177,6 +180,27 @@ export default function ProductDrawer({
                 value={stockMinimo}
                 onChange={(e) => setStockMinimo(e.target.value)}
                 className="tabular h-9 w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 text-[13.5px] text-zinc-100 outline-none focus:border-zinc-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11.5px] font-medium text-zinc-400">
+              Precio (₲)
+            </label>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-zinc-500">
+                ₲
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={100}
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
+                placeholder="15000"
+                className="tabular h-9 w-full rounded border border-zinc-800 bg-zinc-900 pl-7 pr-2.5 text-[13.5px] text-zinc-100 outline-none focus:border-zinc-600"
               />
             </div>
           </div>
