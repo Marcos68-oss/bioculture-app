@@ -50,6 +50,7 @@ export function generarNotaVenta(venta: Venta) {
 
   autoTable(doc, {
     startY: 66,
+    margin: { left: 14, right: 14 },
     head: [["Código", "Producto", "Cant.", "P. unitario", "Subtotal"]],
     body: venta.venta_items.map((item) => [
       item.producto_codigo,
@@ -59,20 +60,25 @@ export function generarNotaVenta(venta: Venta) {
       formatGs(item.subtotal),
     ]),
     theme: "grid",
-    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9 },
+    headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9, halign: "left" },
     bodyStyles: { fontSize: 9 },
     columnStyles: {
-      2: { halign: "right" },
-      3: { halign: "right" },
-      4: { halign: "right" },
+      0: { cellWidth: 30 }, // Ancho fijo para código
+      1: { cellWidth: "auto" }, // El producto toma el espacio libre restante
+      2: { cellWidth: 20, halign: "center" }, // Cantidad centrada
+      3: { cellWidth: 35, halign: "right" },
+      4: { cellWidth: 35, halign: "right" },
     },
   });
 
   // @ts-expect-error — lastAutoTable lo agrega el plugin en runtime
   const finalY = doc.lastAutoTable.finalY as number;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(`Total: ${formatGs(venta.total)}`, 196, finalY + 10, { align: "right" });
+  // Alineado a 14mm del borde derecho exacto
+  doc.text(`Total: ${formatGs(venta.total)}`, pageWidth - 14, finalY + 10, { align: "right" });
 
   pie(doc);
   doc.save(`nota-venta-${venta.id.slice(0, 8)}.pdf`);
@@ -106,6 +112,7 @@ export function generarReportePeriodo(
   // Tabla 1: detalle por venta
   autoTable(doc, {
     startY: 60,
+    margin: { left: 14, right: 14 },
     head: [["Fecha", "Cliente", "Ítems", "Total"]],
     body: ventas.map((v) => [
       new Date(v.fecha).toLocaleDateString("es-PY"),
@@ -116,7 +123,12 @@ export function generarReportePeriodo(
     theme: "grid",
     headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 9 },
-    columnStyles: { 2: { halign: "right" }, 3: { halign: "right" } },
+    columnStyles: { 
+      0: { cellWidth: 35 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 25, halign: "center" }, 
+      3: { cellWidth: 40, halign: "right" } 
+    },
   });
 
   // Tabla 2: totales por producto
@@ -144,6 +156,7 @@ export function generarReportePeriodo(
 
   autoTable(doc, {
     startY: y1 + 16,
+    margin: { left: 14, right: 14 },
     head: [["Código", "Producto", "Cant. vendida", "Total"]],
     body: filasProducto.map(([codigo, d]) => [
       codigo,
@@ -154,14 +167,21 @@ export function generarReportePeriodo(
     theme: "grid",
     headStyles: { fillColor: [39, 39, 42], textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 9 },
-    columnStyles: { 2: { halign: "right" }, 3: { halign: "right" } },
+    columnStyles: { 
+      0: { cellWidth: 30 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 30, halign: "center" }, 
+      3: { cellWidth: 40, halign: "right" } 
+    },
   });
 
   // @ts-expect-error — lastAutoTable lo agrega el plugin en runtime
   const y2 = doc.lastAutoTable.finalY as number;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text(`Total del período: ${formatGs(totalGeneral)}`, 196, y2 + 10, { align: "right" });
+  doc.text(`Total del período: ${formatGs(totalGeneral)}`, pageWidth - 14, y2 + 10, { align: "right" });
 
   pie(doc);
   doc.save(`reporte-ventas-${desde.toISOString().slice(0, 10)}-a-${hasta.toISOString().slice(0, 10)}.pdf`);
