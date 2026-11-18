@@ -2,22 +2,25 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, LogOut, Wifi, ShoppingCart, History } from "lucide-react";
+import { Plus, Search, LogOut, Wifi, ShoppingCart, History, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto, ItemCarrito, getEstadoStock } from "@/lib/types";
 import ProductRow from "@/components/ProductRow";
 import ProductDrawer from "@/components/ProductDrawer";
 import VentaDrawer from "@/components/VentaDrawer";
 import VentasHistorial from "@/components/VentasHistorial";
+import ControlPanel from "@/components/ControlPanel";
 
 export default function InventoryApp({
   initialProductos,
   userEmail,
   ventasHabilitado = false,
+  inversionesHabilitado = false,
 }: {
   initialProductos: Producto[];
   userEmail: string;
   ventasHabilitado?: boolean;
+  inversionesHabilitado?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -30,6 +33,7 @@ export default function InventoryApp({
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
   const [ventaDrawerOpen, setVentaDrawerOpen] = useState(false);
   const [historialOpen, setHistorialOpen] = useState(false);
+  const [controlOpen, setControlOpen] = useState(false);
 
   const totalCount = productos.length;
   const alertaCount = useMemo(
@@ -132,6 +136,24 @@ export default function InventoryApp({
     return !errorItems;
   }
 
+  // Módulo de inversiones: vuelve a leer los productos (el stock lo cambia la base)
+  async function recargarProductos() {
+    const { data } = await supabase
+      .from("productos")
+      .select("*")
+      .order("codigo", { ascending: true });
+    if (data) setProductos(data as Producto[]);
+  }
+
+  // Agrega o actualiza un producto en la lista local (producto nuevo o costo editado)
+  function actualizarProductoLocal(producto: Producto) {
+    setProductos((prev) => {
+      const existe = prev.some((p) => p.id === producto.id);
+      if (existe) return prev.map((p) => (p.id === producto.id ? producto : p));
+      return [...prev, producto].sort((a, b) => a.codigo.localeCompare(b.codigo));
+    });
+  }
+
   function abrirNuevo() {
     setProductoEditar(null);
     setDrawerOpen(true);
@@ -188,6 +210,16 @@ export default function InventoryApp({
                 title="Historial de ventas"
               >
                 <History className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            )}
+            {inversionesHabilitado && (
+              <button
+                onClick={() => setControlOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+                aria-label="Control de inversiones y patrimonio"
+                title="Inversiones y patrimonio"
+              >
+                <Wallet className="h-3.5 w-3.5" strokeWidth={2} />
               </button>
             )}
             <button
@@ -284,6 +316,7 @@ export default function InventoryApp({
         producto={productoEditar}
         onClose={() => setDrawerOpen(false)}
         onGuardado={onGuardado}
+        mostrarCosto={inversionesHabilitado}
       />
 
       {ventasHabilitado && (
@@ -296,6 +329,16 @@ export default function InventoryApp({
           />
           <VentasHistorial open={historialOpen} onClose={() => setHistorialOpen(false)} />
         </>
+      )}
+
+      {inversionesHabilitado && (
+        <ControlPanel
+          open={controlOpen}
+          productos={productos}
+          onClose={() => setControlOpen(false)}
+          onStockCambiado={recargarProductos}
+          onProductoActualizado={actualizarProductoLocal}
+        />
       )}
     </main>
   );

@@ -18,11 +18,12 @@ export default async function DashboardPage() {
     .select("*")
     .order("codigo", { ascending: true });
 
-  // Si la tabla app_config todavía no existe (o falla la lectura),
-  // el módulo de ventas queda oculto por defecto — no rompe nada.
+  // Se lee con "*" a propósito: si todavía no existe la columna
+  // inversiones_habilitado, esta consulta NO falla y ventas sigue andando.
+  // Si la tabla no existe o falla la lectura, todo queda oculto por defecto.
   const { data: config } = await supabase
     .from("app_config")
-    .select("ventas_habilitado")
+    .select("*")
     .eq("id", 1)
     .maybeSingle();
 
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
       initialProductos={productos ?? []}
       userEmail={user.email ?? ""}
       ventasHabilitado={config?.ventas_habilitado ?? false}
+      inversionesHabilitado={config?.inversiones_habilitado ?? false}
     />
   );
 }

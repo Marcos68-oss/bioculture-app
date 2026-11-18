@@ -10,11 +10,15 @@ export default function ProductDrawer({
   producto,
   onClose,
   onGuardado,
+  mostrarCosto = false,
+  zClass = "z-30",
 }: {
   open: boolean;
   producto: Producto | null;
   onClose: () => void;
   onGuardado: (producto: Producto) => void;
+  mostrarCosto?: boolean;
+  zClass?: string;
 }) {
   const supabase = createClient();
   const esEdicion = !!producto;
@@ -24,6 +28,7 @@ export default function ProductDrawer({
   const [stockActual, setStockActual] = useState("0");
   const [stockMinimo, setStockMinimo] = useState("5");
   const [precio, setPrecio] = useState("0");
+  const [costo, setCosto] = useState("0");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +40,7 @@ export default function ProductDrawer({
       setStockActual(String(producto?.stock_actual ?? 0));
       setStockMinimo(String(producto?.stock_minimo ?? 5));
       setPrecio(String(producto?.precio ?? 0));
+      setCosto(String(producto?.costo ?? 0));
       setError(null);
     }
   }, [open, producto]);
@@ -52,6 +58,8 @@ export default function ProductDrawer({
       stock_actual: Number(stockActual) || 0,
       stock_minimo: Number(stockMinimo) || 0,
       precio: Number(precio) || 0,
+      // Solo se envía con el módulo activado: así no rompe si la columna aún no existe
+      ...(mostrarCosto ? { costo: Number(costo) || 0 } : {}),
     };
 
     if (!payload.codigo || !payload.nombre) {
@@ -108,7 +116,7 @@ export default function ProductDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center">
+    <div className={`fixed inset-0 ${zClass} flex items-end justify-center`}>
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
@@ -204,6 +212,28 @@ export default function ProductDrawer({
               />
             </div>
           </div>
+
+          {mostrarCosto && (
+            <div>
+              <label className="mb-1.5 block text-[11.5px] font-medium text-zinc-400">
+                Precio de costo por unidad (₲)
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-zinc-500">
+                  ₲
+                </span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={100}
+                  value={costo}
+                  onChange={(e) => setCosto(e.target.value)}
+                  className="tabular h-9 w-full rounded border border-zinc-800 bg-zinc-900 pl-7 pr-2.5 text-[13.5px] text-zinc-100 outline-none focus:border-zinc-600"
+                />
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-[12.5px] text-danger-text">
