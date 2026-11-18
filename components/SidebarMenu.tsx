@@ -2,6 +2,7 @@
 
 import { LogOut, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export type MenuItem = {
   key: string;
@@ -49,9 +50,7 @@ export default function SidebarMenu({
       >
         <div className="safe-top flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded border border-zinc-800 bg-zinc-900 text-[12px] font-semibold text-ok-text">
-              Y
-            </div>
+            <Logo className="h-8 w-8" />
             <span className="text-[13.5px] font-medium text-zinc-100">BIOCULTURE</span>
           </div>
           <button

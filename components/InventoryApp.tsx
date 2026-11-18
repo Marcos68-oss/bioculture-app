@@ -24,6 +24,7 @@ import VentaDrawer from "@/components/VentaDrawer";
 import VentasHistorial from "@/components/VentasHistorial";
 import ControlPanel, { Tab as TabControl } from "@/components/ControlPanel";
 import SidebarMenu, { MenuGroup } from "@/components/SidebarMenu";
+import Logo from "@/components/Logo";
 
 export default function InventoryApp({
   initialProductos,
@@ -259,9 +260,7 @@ export default function InventoryApp({
                 <Menu className="h-4 w-4" strokeWidth={2} />
               </button>
             )}
-            <div className="flex h-7 w-7 items-center justify-center rounded border border-zinc-800 bg-zinc-900 text-[12px] font-semibold text-ok-text">
-              Y
-            </div>
+            <Logo className="h-8 w-8" />
             <div>
               <h1 className="text-[13.5px] font-medium leading-none text-zinc-100">
                 BIOCULTURE
