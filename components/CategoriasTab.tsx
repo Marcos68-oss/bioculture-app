@@ -104,8 +104,9 @@ export default function CategoriasTab({
   return (
     <div className="px-4 py-4">
       <p className="text-[12px] leading-relaxed text-zinc-500">
-        Creá las categorías de tus productos (por ejemplo Termos o Inciensos). Después asignalas en
-        la pestaña Costos, y en Resumen vas a ver el patrimonio por categoría.
+        1. Crea una categoría. 
+        2. Asígnala a tus productos en Costos. 
+        3. Visualiza el patrimonio por categoría en Resumen.
       </p>
 
       {/* Agregar */}
