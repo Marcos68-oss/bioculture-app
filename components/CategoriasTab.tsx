@@ -223,7 +223,7 @@ export default function CategoriasTab({
 
       {categorias.length > 0 && sinCategoria > 0 && (
         <p className="mt-2.5 text-[11.5px] text-zinc-500">
-          {sinCategoria} producto(s) todavía sin categoría. Asignalas en la pestaña Costos.
+          {sinCategoria} producto(s) todavía sin categoría. Se asignan en la pestaña Costos.
         </p>
       )}
     </div>
