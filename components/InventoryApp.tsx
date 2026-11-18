@@ -2,14 +2,28 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, LogOut, Wifi, ShoppingCart, History, Wallet } from "lucide-react";
+import {
+  Plus,
+  Search,
+  LogOut,
+  Wifi,
+  ShoppingCart,
+  History,
+  Wallet,
+  Menu,
+  Package,
+  BarChart3,
+  Tag,
+  Tags,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto, ItemCarrito, getEstadoStock } from "@/lib/types";
 import ProductRow from "@/components/ProductRow";
 import ProductDrawer from "@/components/ProductDrawer";
 import VentaDrawer from "@/components/VentaDrawer";
 import VentasHistorial from "@/components/VentasHistorial";
-import ControlPanel from "@/components/ControlPanel";
+import ControlPanel, { Tab as TabControl } from "@/components/ControlPanel";
+import SidebarMenu, { MenuGroup } from "@/components/SidebarMenu";
 
 export default function InventoryApp({
   initialProductos,
@@ -34,6 +48,55 @@ export default function InventoryApp({
   const [ventaDrawerOpen, setVentaDrawerOpen] = useState(false);
   const [historialOpen, setHistorialOpen] = useState(false);
   const [controlOpen, setControlOpen] = useState(false);
+  const [controlTab, setControlTab] = useState<TabControl>("inversiones");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // El menú lateral solo existe si hay algún módulo extra activado.
+  // Con todo apagado, la app se ve exactamente como la original.
+  const hayMenu = ventasHabilitado || inversionesHabilitado;
+
+  function irA(accion: () => void) {
+    setMenuOpen(false);
+    accion();
+  }
+
+  const gruposMenu: MenuGroup[] = [
+    {
+      items: [
+        { key: "inventario", label: "Inventario", icon: Package, onClick: () => setMenuOpen(false) },
+        ...(ventasHabilitado
+          ? [
+              {
+                key: "historial",
+                label: "Historial y reportes",
+                icon: History,
+                onClick: () => irA(() => setHistorialOpen(true)),
+              },
+            ]
+          : []),
+      ],
+    },
+    ...(inversionesHabilitado
+      ? [
+          {
+            titulo: "Control de negocio",
+            items: [
+              { key: "inversiones", label: "Inversiones", icon: Wallet, tab: "inversiones" as TabControl },
+              { key: "resumen", label: "Resumen y patrimonio", icon: BarChart3, tab: "resumen" as TabControl },
+              { key: "costos", label: "Costos", icon: Tag, tab: "costos" as TabControl },
+              { key: "categorias", label: "Categorías", icon: Tags, tab: "categorias" as TabControl },
+            ].map(({ tab, ...it }) => ({
+              ...it,
+              onClick: () =>
+                irA(() => {
+                  setControlTab(tab);
+                  setControlOpen(true);
+                }),
+            })),
+          },
+        ]
+      : []),
+  ];
 
   const totalCount = productos.length;
   const alertaCount = useMemo(
@@ -187,6 +250,15 @@ export default function InventoryApp({
       <header className="safe-top sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
+            {hayMenu && (
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+                aria-label="Abrir menú"
+              >
+                <Menu className="h-4 w-4" strokeWidth={2} />
+              </button>
+            )}
             <div className="flex h-7 w-7 items-center justify-center rounded border border-zinc-800 bg-zinc-900 text-[12px] font-semibold text-ok-text">
               Y
             </div>
@@ -202,34 +274,16 @@ export default function InventoryApp({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {ventasHabilitado && (
+            {!hayMenu && (
               <button
-                onClick={() => setHistorialOpen(true)}
+                onClick={handleLogout}
                 className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
-                aria-label="Historial de ventas"
-                title="Historial de ventas"
+                aria-label="Cerrar sesión"
+                title={userEmail}
               >
-                <History className="h-3.5 w-3.5" strokeWidth={2} />
+                <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
               </button>
             )}
-            {inversionesHabilitado && (
-              <button
-                onClick={() => setControlOpen(true)}
-                className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
-                aria-label="Control de inversiones y patrimonio"
-                title="Inversiones y patrimonio"
-              >
-                <Wallet className="h-3.5 w-3.5" strokeWidth={2} />
-              </button>
-            )}
-            <button
-              onClick={handleLogout}
-              className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
-              aria-label="Cerrar sesión"
-              title={userEmail}
-            >
-              <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
-            </button>
           </div>
         </div>
 
@@ -334,10 +388,21 @@ export default function InventoryApp({
       {inversionesHabilitado && (
         <ControlPanel
           open={controlOpen}
+          tab={controlTab}
+          onTabChange={setControlTab}
           productos={productos}
           onClose={() => setControlOpen(false)}
           onStockCambiado={recargarProductos}
           onProductoActualizado={actualizarProductoLocal}
+        />
+      )}
+      {hayMenu && (
+        <SidebarMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          grupos={gruposMenu}
+          userEmail={userEmail}
+          onLogout={handleLogout}
         />
       )}
     </main>

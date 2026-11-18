@@ -9,7 +9,7 @@ import ResumenTab from "@/components/ResumenTab";
 import CostosTab from "@/components/CostosTab";
 import CategoriasTab from "@/components/CategoriasTab";
 
-type Tab = "inversiones" | "resumen" | "costos" | "categorias";
+export type Tab = "inversiones" | "resumen" | "costos" | "categorias";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "inversiones", label: "Inversiones" },
@@ -20,19 +20,22 @@ const TABS: { value: Tab; label: string }[] = [
 
 export default function ControlPanel({
   open,
+  tab,
+  onTabChange,
   productos,
   onClose,
   onStockCambiado,
   onProductoActualizado,
 }: {
   open: boolean;
+  tab: Tab;
+  onTabChange: (t: Tab) => void;
   productos: Producto[];
   onClose: () => void;
   onStockCambiado: () => void | Promise<void>;
   onProductoActualizado: (p: Producto) => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const [tab, setTab] = useState<Tab>("inversiones");
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
 
   const cargarCategorias = useCallback(async () => {
@@ -66,7 +69,7 @@ export default function ControlPanel({
           {TABS.map((t) => (
             <button
               key={t.value}
-              onClick={() => setTab(t.value)}
+              onClick={() => onTabChange(t.value)}
               className={`h-8 flex-1 rounded px-1 text-[12px] font-medium transition-colors ${
                 tab === t.value
                   ? "bg-zinc-100 text-zinc-950"
