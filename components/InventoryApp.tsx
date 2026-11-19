@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -17,14 +17,29 @@ import {
   Tags,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Producto, ItemCarrito, getEstadoStock } from "@/lib/types";
+import { Producto, ItemCarrito, CategoriaProducto, getEstadoStock } from "@/lib/types";
 import ProductRow from "@/components/ProductRow";
 import ProductDrawer from "@/components/ProductDrawer";
-import VentaDrawer from "@/components/VentaDrawer";
-import VentasHistorial from "@/components/VentasHistorial";
-import ControlPanel, { Tab as TabControl } from "@/components/ControlPanel";
+import VentaPage from "@/components/VentaPage";
+import VentasHistorialPage from "@/components/VentasHistorialPage";
+import Pagina from "@/components/Pagina";
+import InversionesTab from "@/components/InversionesTab";
+import ResumenTab from "@/components/ResumenTab";
+import CostosTab from "@/components/CostosTab";
+import CategoriasTab from "@/components/CategoriasTab";
 import SidebarMenu, { MenuGroup } from "@/components/SidebarMenu";
 import Logo from "@/components/Logo";
+
+type Vista =
+  | "inventario"
+  | "ventas"
+  | "historial"
+  | "inversiones"
+  | "resumen"
+  | "costos"
+  | "categorias";
+
+const VISTAS: Vista[] = ["inventario", "ventas", "historial", "inversiones", "resumen", "costos", "categorias"];
 
 export default function InventoryApp({
   initialProductos,
@@ -46,54 +61,84 @@ export default function InventoryApp({
   const [soloAlerta, setSoloAlerta] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
-  const [ventaDrawerOpen, setVentaDrawerOpen] = useState(false);
-  const [historialOpen, setHistorialOpen] = useState(false);
-  const [controlOpen, setControlOpen] = useState(false);
-  const [controlTab, setControlTab] = useState<TabControl>("inversiones");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
+  const [vistaPedida, setVistaPedida] = useState<Vista>("inventario");
 
   // El menú lateral solo existe si hay algún módulo extra activado.
   // Con todo apagado, la app se ve exactamente como la original.
   const hayMenu = ventasHabilitado || inversionesHabilitado;
 
-  function irA(accion: () => void) {
+  // Qué página se muestra. Se guarda en la dirección (#ventas, #resumen...)
+  // para que el botón "atrás" del celular o del navegador funcione.
+  const vista: Vista = (() => {
+    if (!hayMenu) return "inventario";
+    if (["ventas", "historial"].includes(vistaPedida) && !ventasHabilitado) return "inventario";
+    if (["inversiones", "resumen", "costos", "categorias"].includes(vistaPedida) && !inversionesHabilitado)
+      return "inventario";
+    return vistaPedida;
+  })();
+
+  useEffect(() => {
+    function leerHash() {
+      const h = window.location.hash.replace("#", "") as Vista;
+      setVistaPedida(VISTAS.includes(h) ? h : "inventario");
+    }
+    leerHash();
+    window.addEventListener("hashchange", leerHash);
+    return () => window.removeEventListener("hashchange", leerHash);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [vista]);
+
+  function irA(v: Vista) {
     setMenuOpen(false);
-    accion();
+    setVistaPedida(v);
+    window.location.hash = v === "inventario" ? "" : v;
   }
+
+  // Categorías de producto (solo si el módulo de inversiones está activo)
+  async function cargarCategorias() {
+    if (!inversionesHabilitado) return;
+    const { data, error } = await supabase
+      .from("categorias_producto")
+      .select("id, nombre")
+      .order("nombre", { ascending: true });
+    if (!error) setCategorias((data ?? []) as CategoriaProducto[]);
+  }
+
+  useEffect(() => {
+    cargarCategorias();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inversionesHabilitado]);
 
   const gruposMenu: MenuGroup[] = [
     {
-      items: [
-        { key: "inventario", label: "Inventario", icon: Package, onClick: () => setMenuOpen(false) },
-        ...(ventasHabilitado
-          ? [
-              {
-                key: "historial",
-                label: "Historial y reportes",
-                icon: History,
-                onClick: () => irA(() => setHistorialOpen(true)),
-              },
-            ]
-          : []),
-      ],
+      items: [{ key: "inventario", label: "Inventario", icon: Package, onClick: () => irA("inventario") }],
     },
+    ...(ventasHabilitado
+      ? [
+          {
+            titulo: "Ventas",
+            items: [
+              { key: "ventas", label: "Registrar venta", icon: ShoppingCart, onClick: () => irA("ventas") },
+              { key: "historial", label: "Historial y reportes", icon: History, onClick: () => irA("historial") },
+            ],
+          },
+        ]
+      : []),
     ...(inversionesHabilitado
       ? [
           {
             titulo: "Control de negocio",
             items: [
-              { key: "inversiones", label: "Inversiones", icon: Wallet, tab: "inversiones" as TabControl },
-              { key: "resumen", label: "Resumen y patrimonio", icon: BarChart3, tab: "resumen" as TabControl },
-              { key: "costos", label: "Costos", icon: Tag, tab: "costos" as TabControl },
-              { key: "categorias", label: "Categorías", icon: Tags, tab: "categorias" as TabControl },
-            ].map(({ tab, ...it }) => ({
-              ...it,
-              onClick: () =>
-                irA(() => {
-                  setControlTab(tab);
-                  setControlOpen(true);
-                }),
-            })),
+              { key: "inversiones", label: "Inversiones", icon: Wallet, onClick: () => irA("inversiones") },
+              { key: "resumen", label: "Resumen y patrimonio", icon: BarChart3, onClick: () => irA("resumen") },
+              { key: "costos", label: "Costos", icon: Tag, onClick: () => irA("costos") },
+              { key: "categorias", label: "Categorías", icon: Tags, onClick: () => irA("categorias") },
+            ],
           },
         ]
       : []),
@@ -246,7 +291,57 @@ export default function InventoryApp({
   }
 
   return (
-    <main className="min-h-dvh pb-24">
+    <main>
+      {vista === "ventas" && (
+        <VentaPage
+          productos={productos}
+          onMenu={() => setMenuOpen(true)}
+          onVerHistorial={() => irA("historial")}
+          onConfirmar={registrarVenta}
+        />
+      )}
+
+      {vista === "historial" && <VentasHistorialPage onMenu={() => setMenuOpen(true)} />}
+
+      {vista === "inversiones" && (
+        <Pagina titulo="Inversiones" icono={Wallet} onMenu={() => setMenuOpen(true)}>
+          <InversionesTab
+            productos={productos}
+            onStockCambiado={recargarProductos}
+            onProductoCreado={actualizarProductoLocal}
+          />
+        </Pagina>
+      )}
+
+      {vista === "resumen" && (
+        <Pagina titulo="Resumen y patrimonio" icono={BarChart3} onMenu={() => setMenuOpen(true)}>
+          <ResumenTab productos={productos} categorias={categorias} />
+        </Pagina>
+      )}
+
+      {vista === "costos" && (
+        <Pagina titulo="Costos" icono={Tag} onMenu={() => setMenuOpen(true)}>
+          <CostosTab
+            productos={productos}
+            categorias={categorias}
+            onProductoActualizado={actualizarProductoLocal}
+          />
+        </Pagina>
+      )}
+
+      {vista === "categorias" && (
+        <Pagina titulo="Categorías" icono={Tags} onMenu={() => setMenuOpen(true)}>
+          <CategoriasTab
+            categorias={categorias}
+            productos={productos}
+            onCategoriasCambiaron={cargarCategorias}
+            onProductosCambiaron={recargarProductos}
+          />
+        </Pagina>
+      )}
+
+      {vista === "inventario" && (
+      <div className="min-h-dvh pb-24">
       {/* Header compacto */}
       <header className="safe-top sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
@@ -347,7 +442,7 @@ export default function InventoryApp({
       <div className="safe-bottom fixed bottom-5 right-4 z-20 flex flex-col items-end gap-2.5">
         {ventasHabilitado && (
           <button
-            onClick={() => setVentaDrawerOpen(true)}
+            onClick={() => irA("ventas")}
             className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-ok text-zinc-950 shadow-subtle transition-transform active:scale-95"
             aria-label="Registrar venta"
             title="Registrar venta"
@@ -364,6 +459,9 @@ export default function InventoryApp({
         </button>
       </div>
 
+      </div>
+      )}
+
       <ProductDrawer
         open={drawerOpen}
         producto={productoEditar}
@@ -372,34 +470,12 @@ export default function InventoryApp({
         mostrarCosto={inversionesHabilitado}
       />
 
-      {ventasHabilitado && (
-        <>
-          <VentaDrawer
-            open={ventaDrawerOpen}
-            productos={productos}
-            onClose={() => setVentaDrawerOpen(false)}
-            onConfirmar={registrarVenta}
-          />
-          <VentasHistorial open={historialOpen} onClose={() => setHistorialOpen(false)} />
-        </>
-      )}
-
-      {inversionesHabilitado && (
-        <ControlPanel
-          open={controlOpen}
-          tab={controlTab}
-          onTabChange={setControlTab}
-          productos={productos}
-          onClose={() => setControlOpen(false)}
-          onStockCambiado={recargarProductos}
-          onProductoActualizado={actualizarProductoLocal}
-        />
-      )}
       {hayMenu && (
         <SidebarMenu
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           grupos={gruposMenu}
+          activo={vista}
           userEmail={userEmail}
           onLogout={handleLogout}
         />
