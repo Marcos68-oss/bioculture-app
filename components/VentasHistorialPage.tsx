@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Venta, formatGs } from "@/lib/types";
 import { generarNotaVenta, generarReportePeriodo } from "@/lib/pdf";
 import Pagina from "@/components/Pagina";
+import { useUI } from "@/components/UI";
 
 type Periodo = "hoy" | "7d" | "30d" | "90d" | "mes_actual" | "personalizado";
 
@@ -56,6 +57,7 @@ function rangoDe(periodo: Periodo, fechaDia?: string): { desde: Date; hasta: Dat
 
 export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) {
   const supabase = createClient();
+  const { confirmar, abrirMenu } = useUI();
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [borrandoId, setBorrandoId] = useState<string | null>(null);
@@ -103,13 +105,13 @@ export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) 
   );
 
   async function handleBorrar(venta: Venta) {
-    if (
-      !confirm(
-        `¿Eliminar la venta de "${venta.cliente}" (${formatGs(venta.total)})?\n\nOjo: esto NO devuelve el stock automáticamente.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirmar({
+      titulo: `¿Eliminar la venta de "${venta.cliente}" (${formatGs(venta.total)})?`,
+      mensaje: "Ojo: esto NO devuelve el stock automáticamente.",
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
     setBorrandoId(venta.id);
     const { error } = await supabase.from("ventas").delete().eq("id", venta.id);
     setBorrandoId(null);
@@ -199,7 +201,27 @@ export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) 
                 const expandido = expandidoId === v.id;
                 const cantidadItems = v.venta_items.reduce((s, it) => s + it.cantidad, 0);
                 return (
-                  <div key={v.id} className="px-2 py-2.5">
+                  <div
+                    key={v.id}
+                    onContextMenu={(e) =>
+                      abrirMenu(e, [
+                        {
+                          label: expandido ? "Ocultar detalle" : "Ver detalle",
+                          icono: ChevronDown,
+                          onClick: () => setExpandidoId(expandido ? null : v.id),
+                        },
+                        { label: "Descargar nota PDF", icono: FileDown, onClick: () => generarNotaVenta(v) },
+                        {
+                          label: "Eliminar venta",
+                          icono: Trash2,
+                          onClick: () => handleBorrar(v),
+                          peligro: true,
+                          separadorArriba: true,
+                        },
+                      ])
+                    }
+                    className="px-2 py-2.5"
+                  >
                     <button
                       onClick={() => setExpandidoId(expandido ? null : v.id)}
                       className="flex w-full items-center gap-3 text-left"

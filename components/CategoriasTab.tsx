@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus, Pencil, Check, X, Trash2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CategoriaProducto, Producto } from "@/lib/types";
+import { useUI } from "@/components/UI";
 
 const SUGERIDAS = ["Termos", "Inciensos", "Fármacos", "Hule"];
 
@@ -27,6 +28,7 @@ export default function CategoriasTab({
   onProductosCambiaron: () => void | Promise<void>;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const { confirmar, abrirMenu } = useUI();
   const [nuevo, setNuevo] = useState("");
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editNombre, setEditNombre] = useState("");
@@ -84,11 +86,16 @@ export default function CategoriasTab({
 
   async function borrar(c: CategoriaProducto) {
     const n = conteo.get(c.id) ?? 0;
-    const aviso =
-      n > 0
-        ? `\n\n${n} producto(s) van a quedar "Sin categoría". Los productos NO se borran.`
-        : "";
-    if (!confirm(`¿Eliminar la categoría "${c.nombre}"?${aviso}`)) return;
+    const ok = await confirmar({
+      titulo: `¿Eliminar la categoría "${c.nombre}"?`,
+      mensaje:
+        n > 0
+          ? `${n} producto(s) van a quedar "Sin categoría". Los productos NO se borran.`
+          : undefined,
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
 
     setError(null);
     setOcupado(c.id);
@@ -160,7 +167,29 @@ export default function CategoriasTab({
           <p className="py-10 text-center text-[13px] text-zinc-500">Todavía no creaste categorías</p>
         ) : (
           categorias.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 px-3 py-2.5">
+            <div
+              key={c.id}
+              onContextMenu={(e) =>
+                abrirMenu(e, [
+                  {
+                    label: "Renombrar",
+                    icono: Pencil,
+                    onClick: () => {
+                      setEditandoId(c.id);
+                      setEditNombre(c.nombre);
+                    },
+                  },
+                  {
+                    label: "Eliminar categoría",
+                    icono: Trash2,
+                    onClick: () => borrar(c),
+                    peligro: true,
+                    separadorArriba: true,
+                  },
+                ])
+              }
+              className="flex items-center gap-2 px-3 py-2.5"
+            >
               {editandoId === c.id ? (
                 <>
                   <input

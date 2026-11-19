@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Search, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto, CategoriaProducto, formatGs } from "@/lib/types";
+import Selector from "@/components/Selector";
 
 type Filtro = "todos" | "sinCosto" | "sinCategoria";
 
@@ -172,19 +173,17 @@ export default function CostosTab({
               </div>
 
               {categorias.length > 0 && (
-                <select
-                  value={p.categoria_id ?? ""}
-                  onChange={(e) => guardarCategoria(p, e.target.value)}
-                  className="mt-2 h-8 w-full rounded border border-zinc-800 bg-zinc-900 px-2 text-[12.5px] text-zinc-300 outline-none [color-scheme:dark] focus:border-zinc-600"
-                  aria-label={`Categoría de ${p.nombre}`}
-                >
-                  <option value="">Sin categoría</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
+                <Selector
+                  valor={p.categoria_id ?? ""}
+                  opciones={[
+                    { valor: "", etiqueta: "Sin categoría" },
+                    ...categorias.map((c) => ({ valor: c.id, etiqueta: c.nombre })),
+                  ]}
+                  onCambio={(v) => guardarCategoria(p, v)}
+                  titulo="Elegir categoría"
+                  ariaLabel={`Categoría de ${p.nombre}`}
+                  className="mt-2 h-8 text-[12.5px]"
+                />
               )}
             </div>
           ))

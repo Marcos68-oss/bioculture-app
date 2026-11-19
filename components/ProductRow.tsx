@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Pencil, Copy } from "lucide-react";
 import { Producto, getEstadoStock, formatGs } from "@/lib/types";
+import { useUI } from "@/components/UI";
 
 const ESTADO_CONFIG = {
   ok: { label: "OK", cls: "bg-ok-bg text-ok-text border-ok-border" },
@@ -19,6 +20,7 @@ export default function ProductRow({
   onAjustar: (delta: number) => void;
   onEditar: () => void;
 }) {
+  const { abrirMenu } = useUI();
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const estado = getEstadoStock(producto);
   const config = ESTADO_CONFIG[estado];
@@ -31,6 +33,24 @@ export default function ProductRow({
 
   return (
     <div
+      onContextMenu={(e) =>
+        abrirMenu(e, [
+          { label: "Editar producto", icono: Pencil, onClick: onEditar },
+          { label: "Sumar 1 al stock", icono: Plus, onClick: () => handle(1), separadorArriba: true },
+          {
+            label: "Restar 1 al stock",
+            icono: Minus,
+            onClick: () => handle(-1),
+            deshabilitado: producto.stock_actual <= 0,
+          },
+          {
+            label: "Copiar código",
+            icono: Copy,
+            onClick: () => navigator.clipboard?.writeText(producto.codigo),
+            separadorArriba: true,
+          },
+        ])
+      }
       className={`flex items-center gap-3 rounded-md px-2.5 py-2.5 transition-colors ${
         flash === "good" ? "animate-flash-good" : flash === "bad" ? "animate-flash-bad" : ""
       }`}

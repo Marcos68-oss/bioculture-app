@@ -11,6 +11,7 @@ import {
 } from "@/lib/types";
 import { hoyISO } from "@/lib/fechas";
 import ProductDrawer from "@/components/ProductDrawer";
+import { useUI } from "@/components/UI";
 
 function mensajeError(e: { message?: string; code?: string }): string {
   if (e.code === "PGRST202" || e.message?.includes("Could not find the function")) {
@@ -35,6 +36,7 @@ export default function InversionForm({
   onProductoCreado: (p: Producto) => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const { confirmar } = useUI();
   const esEdicion = !!inversion;
 
   const [fecha, setFecha] = useState(hoyISO());
@@ -135,9 +137,15 @@ export default function InversionForm({
     if (!inversion) return;
     const aviso =
       inversion.categoria === "mercaderia" && inversion.cantidad
-        ? `\n\nSe van a RESTAR ${inversion.cantidad} unidades del stock de "${inversion.producto_nombre}".`
-        : "";
-    if (!confirm(`¿Eliminar "${inversion.concepto}"?${aviso}`)) return;
+        ? `Se van a RESTAR ${inversion.cantidad} unidades del stock de "${inversion.producto_nombre}".`
+        : undefined;
+    const ok = await confirmar({
+      titulo: `¿Eliminar "${inversion.concepto}"?`,
+      mensaje: aviso,
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
 
     setDeleting(true);
     const { error: err } = await supabase.rpc("eliminar_inversion", { p_id: inversion.id });

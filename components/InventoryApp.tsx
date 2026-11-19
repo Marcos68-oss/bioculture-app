@@ -29,6 +29,7 @@ import CostosTab from "@/components/CostosTab";
 import CategoriasTab from "@/components/CategoriasTab";
 import SidebarMenu, { MenuGroup } from "@/components/SidebarMenu";
 import Logo from "@/components/Logo";
+import { UIProvider } from "@/components/UI";
 
 type Vista =
   | "inventario"
@@ -291,6 +292,7 @@ export default function InventoryApp({
   }
 
   return (
+    <UIProvider>
     <main>
       {vista === "ventas" && (
         <VentaPage
@@ -481,5 +483,6 @@ export default function InventoryApp({
         />
       )}
     </main>
+    </UIProvider>
   );
 }

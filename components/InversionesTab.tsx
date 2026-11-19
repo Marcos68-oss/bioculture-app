@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, FileDown, Loader2 } from "lucide-react";
+import { Plus, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Inversion, Producto, CATEGORIAS_INVERSION, labelCategoria, formatGs } from "@/lib/types";
 import {
@@ -17,6 +17,7 @@ import {
   fmtISOCorta,
 } from "@/lib/fechas";
 import InversionForm from "@/components/InversionForm";
+import { useUI } from "@/components/UI";
 import { generarReporteInversiones } from "@/lib/pdf-inversiones";
 
 type Periodo = "hoy" | "semana" | "mes" | "rango";
@@ -44,6 +45,7 @@ export default function InversionesTab({
   onProductoCreado: (p: Producto) => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const { confirmar, abrirMenu } = useUI();
 
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [rDesde, setRDesde] = useState(hoyISO());
@@ -56,6 +58,7 @@ export default function InversionesTab({
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<Inversion | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const { desde, hasta, etiqueta } = useMemo(() => {
     const hoy = new Date();
@@ -109,6 +112,31 @@ export default function InversionesTab({
   async function alGuardar() {
     setFormOpen(false);
     setEditando(null);
+    await Promise.all([cargar(), onStockCambiado()]);
+  }
+
+  function editar(i: Inversion) {
+    setEditando(i);
+    setFormOpen(true);
+  }
+
+  async function eliminar(i: Inversion) {
+    const ok = await confirmar({
+      titulo: `¿Eliminar "${i.concepto}"?`,
+      mensaje:
+        i.categoria === "mercaderia" && i.cantidad
+          ? `Se van a RESTAR ${i.cantidad} unidades del stock de "${i.producto_nombre}".`
+          : undefined,
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
+    setAviso(null);
+    const { error: err } = await supabase.rpc("eliminar_inversion", { p_id: i.id });
+    if (err) {
+      setAviso(err.message || "No se pudo eliminar. Probá de nuevo.");
+      return;
+    }
     await Promise.all([cargar(), onStockCambiado()]);
   }
 
@@ -211,6 +239,12 @@ export default function InversionesTab({
         </div>
       )}
 
+      {aviso && (
+        <p className="mt-3 rounded border border-danger-border bg-danger-bg px-3 py-2 text-[12.5px] text-danger-text">
+          {aviso}
+        </p>
+      )}
+
       {/* Lista */}
       <div className="mt-3 divide-y divide-zinc-900 rounded border border-zinc-800">
         {loading ? (
@@ -227,10 +261,19 @@ export default function InversionesTab({
           items.map((i) => (
             <button
               key={i.id}
-              onClick={() => {
-                setEditando(i);
-                setFormOpen(true);
-              }}
+              onClick={() => editar(i)}
+              onContextMenu={(e) =>
+                abrirMenu(e, [
+                  { label: "Editar", icono: Pencil, onClick: () => editar(i) },
+                  {
+                    label: "Eliminar",
+                    icono: Trash2,
+                    onClick: () => eliminar(i),
+                    peligro: true,
+                    separadorArriba: true,
+                  },
+                ])
+              }
               className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-zinc-900/60"
             >
               <span className="w-10 shrink-0 font-mono text-[11.5px] text-zinc-500">

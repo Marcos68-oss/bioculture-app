@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, Loader2, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/lib/types";
+import { useUI } from "@/components/UI";
 
 export default function ProductDrawer({
   open,
@@ -21,6 +22,7 @@ export default function ProductDrawer({
   zClass?: string;
 }) {
   const supabase = createClient();
+  const { confirmar } = useUI();
   const esEdicion = !!producto;
 
   const [codigo, setCodigo] = useState("");
@@ -100,7 +102,13 @@ export default function ProductDrawer({
 
   async function handleDelete() {
     if (!producto) return;
-    if (!confirm(`¿Eliminar "${producto.nombre}"? Esta acción no se puede deshacer.`)) return;
+    const ok = await confirmar({
+      titulo: `¿Eliminar "${producto.nombre}"?`,
+      mensaje: "Esta acción no se puede deshacer.",
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
 
     setDeleting(true);
     const { error } = await supabase.from("productos").delete().eq("id", producto.id);

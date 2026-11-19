@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pencil, Check, X, Loader2, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Producto, Metas, CierrePatrimonio, CategoriaProducto, formatGs } from "@/lib/types";
+import { useUI } from "@/components/UI";
 import {
   aISO,
   hoyISO,
@@ -34,6 +35,7 @@ export default function ResumenTab({
   categorias: CategoriaProducto[];
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const { confirmar, abrirMenu } = useUI();
 
   const [modo, setModo] = useState<Modo>("semana");
   const [ancla, setAncla] = useState<Date>(() => new Date());
@@ -200,7 +202,12 @@ export default function ResumenTab({
   }
 
   async function borrarCierre(c: CierrePatrimonio) {
-    if (!confirm(`¿Eliminar el cierre del ${fmtISOLarga(c.fecha)}?`)) return;
+    const ok = await confirmar({
+      titulo: `¿Eliminar el cierre del ${fmtISOLarga(c.fecha)}?`,
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
     const { error } = await supabase.from("patrimonio_cierres").delete().eq("id", c.id);
     if (!error) setCierres((l) => l.filter((x) => x.id !== c.id));
   }
@@ -416,7 +423,15 @@ export default function ResumenTab({
             {cierres.map((c, idx) => {
               const ant = cierres[idx + 1];
               return (
-                <div key={c.id} className="flex items-start gap-3 px-3 py-2.5">
+                <div
+                  key={c.id}
+                  onContextMenu={(e) =>
+                    abrirMenu(e, [
+                      { label: "Eliminar cierre", icono: Trash2, onClick: () => borrarCierre(c), peligro: true },
+                    ])
+                  }
+                  className="flex items-start gap-3 px-3 py-2.5"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-[12.5px] font-medium text-zinc-100">{fmtISOLarga(c.fecha)}</p>
                     <p className="tabular mt-1 text-[12px] text-zinc-400">
