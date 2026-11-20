@@ -8,11 +8,13 @@ import Pagina from "@/components/Pagina";
 export default function VentaPage({
   productos,
   onMenu,
+  menuAbierto,
   onVerHistorial,
   onConfirmar,
 }: {
   productos: Producto[];
   onMenu: () => void;
+  menuAbierto: boolean;
   onVerHistorial: () => void;
   onConfirmar: (items: ItemCarrito[], cliente: string) => Promise<boolean>;
 }) {
@@ -106,7 +108,7 @@ export default function VentaPage({
   }
 
   return (
-    <Pagina titulo="Registrar venta" icono={ShoppingCart} onMenu={onMenu} ancho="max-w-2xl" relleno="pb-0">
+    <Pagina titulo="Registrar venta" icono={ShoppingCart} onMenu={onMenu} menuAbierto={menuAbierto} ancho="max-w-2xl" relleno="pb-0">
         <form onSubmit={handleSubmit} className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
           <div className="flex-1 space-y-3.5 px-4 py-4">
             {exito && (

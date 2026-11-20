@@ -7,6 +7,7 @@ import { Venta, formatGs } from "@/lib/types";
 import { generarNotaVenta, generarReportePeriodo } from "@/lib/pdf";
 import Pagina from "@/components/Pagina";
 import { useUI } from "@/components/UI";
+import SelectorFecha from "@/components/SelectorFecha";
 
 type Periodo = "hoy" | "7d" | "30d" | "90d" | "mes_actual" | "personalizado";
 
@@ -55,7 +56,13 @@ function rangoDe(periodo: Periodo, fechaDia?: string): { desde: Date; hasta: Dat
   return { desde, hasta: ahora };
 }
 
-export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) {
+export default function VentasHistorialPage({
+  onMenu,
+  menuAbierto,
+}: {
+  onMenu: () => void;
+  menuAbierto: boolean;
+}) {
   const supabase = createClient();
   const { confirmar, abrirMenu } = useUI();
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -135,7 +142,7 @@ export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) 
   }
 
   return (
-    <Pagina titulo="Historial y reportes" icono={History} onMenu={onMenu}>
+    <Pagina titulo="Historial y reportes" icono={History} onMenu={onMenu} menuAbierto={menuAbierto}>
         {/* Selector de período + exportar reporte */}
         <div className="space-y-2 border-b border-zinc-800 px-4 py-3">
           <div className="flex gap-1.5 overflow-x-auto">
@@ -158,11 +165,11 @@ export default function VentasHistorialPage({ onMenu }: { onMenu: () => void }) 
           {periodo === "personalizado" && (
             <div className="flex items-center gap-2 pt-1">
               <Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-              <input
-                type="date"
-                value={fechaSeleccionada}
-                onChange={(e) => setFechaSeleccionada(e.target.value)}
-                className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-[12px] text-zinc-200 focus:border-zinc-600 focus:outline-none"
+              <SelectorFecha
+                valor={fechaSeleccionada}
+                onCambio={setFechaSeleccionada}
+                titulo="Elegir día"
+                className="h-8 text-[12px]"
               />
             </div>
           )}

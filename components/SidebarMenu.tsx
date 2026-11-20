@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, X } from "lucide-react";
+import { LogOut, PanelLeftClose, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -41,9 +41,11 @@ function Contenido({
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-500 hover:text-zinc-300"
-              aria-label="Cerrar menú"
+              aria-label="Ocultar menú"
+              title="Ocultar menú"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 lg:hidden" />
+              <PanelLeftClose className="hidden h-4 w-4 lg:block" />
             </button>
           )}
         </div>
@@ -114,19 +116,19 @@ export default function SidebarMenu({
 }) {
   return (
     <>
-      {/* Menú que se desliza desde la izquierda */}
+      {/* Celular: se desliza y se cierra al elegir. PC: queda fijo hasta que lo ocultes. */}
       <div
-        className={`fixed inset-0 z-40 ${open ? "" : "pointer-events-none"}`}
+        className={`fixed inset-0 z-40 lg:pointer-events-none lg:z-20 ${open ? "" : "pointer-events-none"}`}
         aria-hidden={!open}
       >
         <div
           onClick={onClose}
-          className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${
+          className={`absolute inset-0 bg-black/60 transition-opacity duration-200 lg:hidden ${
             open ? "opacity-100" : "opacity-0"
           }`}
         />
         <nav
-          className={`absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 ${
+          className={`absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 lg:pointer-events-auto lg:w-64 ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >

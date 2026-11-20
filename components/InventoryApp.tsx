@@ -95,7 +95,8 @@ export default function InventoryApp({
   }, [vista]);
 
   function irA(v: Vista) {
-    setMenuOpen(false);
+    // En el celular el menú se cierra al elegir; en PC queda fijo.
+    if (!window.matchMedia("(min-width: 1024px)").matches) setMenuOpen(false);
     setVistaPedida(v);
     window.location.hash = v === "inventario" ? "" : v;
   }
@@ -293,20 +294,21 @@ export default function InventoryApp({
 
   return (
     <UIProvider>
-    <main>
+    <main className={`transition-[padding] duration-200 ${hayMenu && menuOpen ? "lg:pl-64" : ""}`}>
       {vista === "ventas" && (
         <VentaPage
           productos={productos}
           onMenu={() => setMenuOpen(true)}
+          menuAbierto={menuOpen}
           onVerHistorial={() => irA("historial")}
           onConfirmar={registrarVenta}
         />
       )}
 
-      {vista === "historial" && <VentasHistorialPage onMenu={() => setMenuOpen(true)} />}
+      {vista === "historial" && <VentasHistorialPage onMenu={() => setMenuOpen(true)} menuAbierto={menuOpen} />}
 
       {vista === "inversiones" && (
-        <Pagina titulo="Inversiones" icono={Wallet} onMenu={() => setMenuOpen(true)}>
+        <Pagina titulo="Inversiones" icono={Wallet} onMenu={() => setMenuOpen(true)} menuAbierto={menuOpen}>
           <InversionesTab
             productos={productos}
             onStockCambiado={recargarProductos}
@@ -316,13 +318,13 @@ export default function InventoryApp({
       )}
 
       {vista === "resumen" && (
-        <Pagina titulo="Resumen y patrimonio" icono={BarChart3} onMenu={() => setMenuOpen(true)}>
+        <Pagina titulo="Resumen y patrimonio" icono={BarChart3} onMenu={() => setMenuOpen(true)} menuAbierto={menuOpen}>
           <ResumenTab productos={productos} categorias={categorias} />
         </Pagina>
       )}
 
       {vista === "costos" && (
-        <Pagina titulo="Costos" icono={Tag} onMenu={() => setMenuOpen(true)}>
+        <Pagina titulo="Costos" icono={Tag} onMenu={() => setMenuOpen(true)} menuAbierto={menuOpen}>
           <CostosTab
             productos={productos}
             categorias={categorias}
@@ -332,7 +334,7 @@ export default function InventoryApp({
       )}
 
       {vista === "categorias" && (
-        <Pagina titulo="Categorías" icono={Tags} onMenu={() => setMenuOpen(true)}>
+        <Pagina titulo="Categorías" icono={Tags} onMenu={() => setMenuOpen(true)} menuAbierto={menuOpen}>
           <CategoriasTab
             categorias={categorias}
             productos={productos}
@@ -351,7 +353,9 @@ export default function InventoryApp({
             {hayMenu && (
               <button
                 onClick={() => setMenuOpen(true)}
-                className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+                className={`flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200 ${
+                  menuOpen ? "lg:hidden" : ""
+                }`}
                 aria-label="Abrir menú"
               >
                 <Menu className="h-4 w-4" strokeWidth={2} />

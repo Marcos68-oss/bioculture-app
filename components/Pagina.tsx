@@ -4,18 +4,20 @@ import { Menu } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 // Marco común de las páginas internas (Ventas, Historial, Inversiones, etc.).
-// Muestra el botón ☰ para abrir el menú lateral.
+// Muestra el botón ☰ para abrir el menú lateral (en PC se oculta si el menú ya está fijo).
 export default function Pagina({
   titulo,
   icono: Icono,
   onMenu,
-  ancho = "max-w-3xl",
+  menuAbierto = false,
+  ancho = "max-w-none",
   relleno = "pb-28",
   children,
 }: {
   titulo: string;
   icono: LucideIcon;
   onMenu: () => void;
+  menuAbierto?: boolean;
   ancho?: string;
   relleno?: string;
   children: React.ReactNode;
@@ -23,10 +25,12 @@ export default function Pagina({
   return (
     <div className={`min-h-dvh ${relleno}`}>
       <header className="safe-top sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
-        <div className="flex items-center gap-2.5 px-4 py-3">
+        <div className={`mx-auto flex w-full items-center gap-2.5 px-4 py-3 ${ancho}`}>
           <button
             onClick={onMenu}
-            className="flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+            className={`flex h-8 w-8 items-center justify-center rounded border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200 ${
+              menuAbierto ? "lg:hidden" : ""
+            }`}
             aria-label="Abrir menú"
           >
             <Menu className="h-4 w-4" strokeWidth={2} />

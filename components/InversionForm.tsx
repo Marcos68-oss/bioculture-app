@@ -12,6 +12,7 @@ import {
 import { hoyISO } from "@/lib/fechas";
 import ProductDrawer from "@/components/ProductDrawer";
 import { useUI } from "@/components/UI";
+import SelectorFecha from "@/components/SelectorFecha";
 
 function mensajeError(e: { message?: string; code?: string }): string {
   if (e.code === "PGRST202" || e.message?.includes("Could not find the function")) {
@@ -318,11 +319,12 @@ export default function InversionForm({
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="mb-1.5 block text-[11.5px] font-medium text-zinc-400">Fecha</label>
-                  <input
-                    type="date"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    className="h-9 w-full rounded border border-zinc-800 bg-zinc-900 px-2.5 text-[13.5px] text-zinc-100 outline-none [color-scheme:dark] focus:border-zinc-600"
+                  <SelectorFecha
+                    valor={fecha}
+                    onCambio={setFecha}
+                    titulo="Fecha de la inversión"
+                    ariaLabel="Fecha"
+                    className="h-9 text-[13.5px]"
                   />
                 </div>
                 <div>

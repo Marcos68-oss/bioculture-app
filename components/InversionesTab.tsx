@@ -18,6 +18,7 @@ import {
 } from "@/lib/fechas";
 import InversionForm from "@/components/InversionForm";
 import { useUI } from "@/components/UI";
+import SelectorFecha from "@/components/SelectorFecha";
 import { generarReporteInversiones } from "@/lib/pdf-inversiones";
 
 type Periodo = "hoy" | "semana" | "mes" | "rango";
@@ -187,17 +188,19 @@ export default function InversionesTab({
 
       {periodo === "rango" && (
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={rDesde}
-            onChange={(e) => setRDesde(e.target.value)}
-            className="h-9 rounded border border-zinc-800 bg-zinc-900 px-2.5 text-[13px] text-zinc-100 outline-none [color-scheme:dark] focus:border-zinc-600"
+          <SelectorFecha
+            valor={rDesde}
+            onCambio={setRDesde}
+            titulo="Desde"
+            ariaLabel="Fecha desde"
+            className="h-9 text-[13px]"
           />
-          <input
-            type="date"
-            value={rHasta}
-            onChange={(e) => setRHasta(e.target.value)}
-            className="h-9 rounded border border-zinc-800 bg-zinc-900 px-2.5 text-[13px] text-zinc-100 outline-none [color-scheme:dark] focus:border-zinc-600"
+          <SelectorFecha
+            valor={rHasta}
+            onCambio={setRHasta}
+            titulo="Hasta"
+            ariaLabel="Fecha hasta"
+            className="h-9 text-[13px]"
           />
         </div>
       )}
