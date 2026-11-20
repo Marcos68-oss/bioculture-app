@@ -38,6 +38,16 @@ export default function VentaPage({
       .slice(0, 6);
   }, [productos, query, carrito]);
 
+  // Solo PC: lista completa de productos para tocar y agregar
+  const listaPC = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return productos.filter(
+      (p) =>
+        (!q || p.codigo.toLowerCase().includes(q) || p.nombre.toLowerCase().includes(q)) &&
+        !carrito.some((it) => it.producto.id === p.id)
+    );
+  }, [productos, query, carrito]);
+
   const total = useMemo(
     () => carrito.reduce((s, it) => s + it.producto.precio * it.cantidad, 0),
     [carrito]
@@ -108,9 +118,13 @@ export default function VentaPage({
   }
 
   return (
-    <Pagina titulo="Registrar venta" icono={ShoppingCart} onMenu={onMenu} menuAbierto={menuAbierto} ancho="max-w-2xl" relleno="pb-0">
-        <form onSubmit={handleSubmit} className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
-          <div className="flex-1 space-y-3.5 px-4 py-4">
+    <Pagina titulo="Registrar venta" icono={ShoppingCart} onMenu={onMenu} menuAbierto={menuAbierto} relleno="pb-0">
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-6 lg:px-4 lg:py-4"
+        >
+          {/* Izquierda (PC): buscar y elegir productos */}
+          <div className="space-y-3.5 px-4 pt-4 lg:px-0 lg:pt-0">
             {exito && (
               <div className="flex items-center justify-between gap-2 rounded border border-ok-border bg-ok-bg px-3 py-2.5 text-[12.5px] text-ok-text">
                 <span className="flex items-center gap-2">
@@ -137,8 +151,33 @@ export default function VentaPage({
                 />
               </div>
 
+              {/* PC: lista completa de productos */}
+              <div className="mt-2 hidden max-h-[calc(100dvh-13rem)] divide-y divide-zinc-900 overflow-y-auto rounded border border-zinc-800 lg:block">
+                {listaPC.length === 0 ? (
+                  <p className="py-10 text-center text-[13px] text-zinc-500">Sin resultados</p>
+                ) : (
+                  listaPC.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => agregarProducto(p)}
+                      disabled={p.stock_actual <= 0}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-zinc-900 disabled:opacity-40"
+                    >
+                      <span className="w-9 shrink-0 font-mono text-[11.5px] text-zinc-500">{p.codigo}</span>
+                      <span className="flex-1 truncate text-[13px] text-zinc-100">{p.nombre}</span>
+                      <span className="tabular text-[12px] text-zinc-400">{formatGs(p.precio)}</span>
+                      <span className="tabular w-16 text-right text-[11.5px] text-zinc-500">
+                        {p.stock_actual <= 0 ? "Agotado" : `${p.stock_actual} u.`}
+                      </span>
+                      <Plus className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    </button>
+                  ))
+                )}
+              </div>
+
               {resultados.length > 0 && (
-                <div className="mt-1.5 divide-y divide-zinc-900 overflow-hidden rounded border border-zinc-800">
+                <div className="mt-1.5 divide-y divide-zinc-900 overflow-hidden rounded border border-zinc-800 lg:hidden">
                   {resultados.map((p) => (
                     <button
                       type="button"
@@ -158,6 +197,19 @@ export default function VentaPage({
               )}
             </div>
 
+          </div>
+
+          {/* Derecha (PC): venta actual. En celular se muestra en el mismo orden de siempre. */}
+          <div className="contents lg:sticky lg:top-[4.5rem] lg:block lg:overflow-hidden lg:rounded lg:border lg:border-zinc-800">
+            <h2 className="hidden border-b border-zinc-800 px-4 py-3 text-[13px] font-medium text-zinc-100 lg:block">
+              Venta actual
+            </h2>
+            <div className="flex-1 space-y-3.5 px-4 py-3.5 lg:max-h-[calc(100dvh-14rem)] lg:flex-none lg:overflow-y-auto lg:py-4">
+            {carrito.length === 0 && (
+              <p className="hidden py-8 text-center text-[12.5px] text-zinc-500 lg:block">
+                Tocá un producto de la lista para agregarlo
+              </p>
+            )}
             {/* Carrito */}
             {carrito.length > 0 && (
               <div>
@@ -248,7 +300,7 @@ export default function VentaPage({
             )}
           </div>
 
-          <div className="safe-bottom sticky bottom-0 border-t border-zinc-800 bg-zinc-950 px-4 py-3.5">
+          <div className="safe-bottom sticky bottom-0 border-t border-zinc-800 bg-zinc-950 px-4 py-3.5 lg:static">
             <button
               type="submit"
               disabled={carrito.length === 0 || loading}
@@ -257,6 +309,7 @@ export default function VentaPage({
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {carrito.length > 0 ? `Confirmar venta — ${formatGs(total)}` : "Confirmar venta"}
             </button>
+          </div>
           </div>
         </form>
     </Pagina>
